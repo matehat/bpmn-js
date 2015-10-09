@@ -46,11 +46,11 @@ describe('features/modeling - update properties', function() {
       modeling.updateProperties(taskShape, { loopCharacteristics: loopCharacteristics });
 
       // then
-      expect(taskShape.businessObject.loopCharacteristics).toBe(loopCharacteristics);
+      expect(taskShape.businessObject.loopCharacteristics).to.eql(loopCharacteristics);
 
 
       // task shape got updated
-      expect(updatedElements).toContain(taskShape);
+      expect(updatedElements).to.include(taskShape);
     }));
 
 
@@ -63,10 +63,26 @@ describe('features/modeling - update properties', function() {
       modeling.updateProperties(gatewayShape, { 'default': undefined });
 
       // then
-      expect(gatewayShape.businessObject['default']).not.toBeDefined();
+      expect(gatewayShape.businessObject['default']).not.to.be.defined;
 
       // flow got updated, too
-      expect(updatedElements).toContain(elementRegistry.get('SequenceFlow_1'));
+      expect(updatedElements).to.include(elementRegistry.get('SequenceFlow_1'));
+    }));
+
+
+    it('setting name', inject(function(elementRegistry, modeling) {
+
+      // given
+      var flowConnection = elementRegistry.get('SequenceFlow_4');
+
+      // when
+      modeling.updateProperties(flowConnection, { name: 'FOO BAR' });
+
+      // then
+      expect(flowConnection.businessObject.name).to.equal('FOO BAR');
+
+      // flow label is now shown
+      expect(flowConnection.label.hidden).to.be.false;
     }));
 
 
@@ -79,10 +95,10 @@ describe('features/modeling - update properties', function() {
       modeling.updateProperties(flowConnection, { name: 'FOO BAR' });
 
       // then
-      expect(flowConnection.businessObject.name).toBe('FOO BAR');
+      expect(flowConnection.businessObject.name).to.equal('FOO BAR');
 
       // flow label got updated, too
-      expect(updatedElements).toContain(elementRegistry.get('SequenceFlow_1_label'));
+      expect(updatedElements).to.include(elementRegistry.get('SequenceFlow_1_label'));
     }));
 
 
@@ -95,7 +111,10 @@ describe('features/modeling - update properties', function() {
       modeling.updateProperties(flowConnection, { name: undefined });
 
       // then
-      expect(flowConnection.businessObject.name).not.toBeDefined();
+      expect(flowConnection.businessObject.name).not.to.be.defined;
+
+      // flow label is now hidden
+      expect(flowConnection.label.hidden).to.be.true;
     }));
 
 
@@ -103,13 +122,17 @@ describe('features/modeling - update properties', function() {
 
       // given
       var flowConnection = elementRegistry.get('SequenceFlow_1');
+      var ids = flowConnection.businessObject.$model.ids;
 
       // when
       modeling.updateProperties(flowConnection, { id: 'FOO_BAR' });
 
       // then
-      expect(flowConnection.businessObject.id).toBe('FOO_BAR');
-      expect(flowConnection.id).toBe('FOO_BAR');
+      expect(ids.assigned('FOO_BAR')).to.exist;
+      expect(ids.assigned('SequenceFlow_1')).to.be.false;
+
+      expect(flowConnection.businessObject.id).to.equal('FOO_BAR');
+      expect(flowConnection.id).to.equal('FOO_BAR');
     }));
 
 
@@ -125,8 +148,8 @@ describe('features/modeling - update properties', function() {
       });
 
       // then
-      expect(flowConnection.businessObject.get('xmlns:foo')).toBe('http://foo');
-      expect(flowConnection.businessObject.get('foo:customAttr')).toBe('FOO');
+      expect(flowConnection.businessObject.get('xmlns:foo')).to.equal('http://foo');
+      expect(flowConnection.businessObject.get('foo:customAttr')).to.equal('FOO');
     }));
 
   });
@@ -146,7 +169,7 @@ describe('features/modeling - update properties', function() {
       commandStack.undo();
 
       // then
-      expect(taskShape.businessObject.loopCharactersistics).not.toBeDefined();
+      expect(taskShape.businessObject.loopCharactersistics).not.to.be.defined;
     }));
 
 
@@ -160,10 +183,10 @@ describe('features/modeling - update properties', function() {
       commandStack.undo();
 
       // then
-      expect(gatewayShape.businessObject['default']).toBeDefined();
+      expect(gatewayShape.businessObject['default']).to.be.defined;
 
       // flow got updated, too
-      expect(updatedElements).toContain(elementRegistry.get('SequenceFlow_1'));
+      expect(updatedElements).to.include(elementRegistry.get('SequenceFlow_1'));
     }));
 
 
@@ -177,10 +200,10 @@ describe('features/modeling - update properties', function() {
       commandStack.undo();
 
       // then
-      expect(flowConnection.businessObject.name).toBe('default');
+      expect(flowConnection.businessObject.name).to.equal('default');
 
       // flow got updated, too
-      expect(updatedElements).toContain(elementRegistry.get('SequenceFlow_1_label'));
+      expect(updatedElements).to.include(elementRegistry.get('SequenceFlow_1_label'));
     }));
 
 
@@ -195,7 +218,7 @@ describe('features/modeling - update properties', function() {
       commandStack.undo();
 
       // then
-      expect(flowConnection.businessObject.name).toBe('conditional');
+      expect(flowConnection.businessObject.name).to.equal('conditional');
     }));
 
 
@@ -203,14 +226,18 @@ describe('features/modeling - update properties', function() {
 
       // given
       var flowConnection = elementRegistry.get('SequenceFlow_1');
+      var ids = flowConnection.businessObject.$model.ids;
 
       // when
       modeling.updateProperties(flowConnection, { id: 'FOO_BAR' });
       commandStack.undo();
 
       // then
-      expect(flowConnection.businessObject.id).toBe('SequenceFlow_1');
-      expect(flowConnection.id).toBe('SequenceFlow_1');
+      expect(ids.assigned('FOO_BAR')).to.be.false;
+      expect(ids.assigned('SequenceFlow_1')).to.exist;
+
+      expect(flowConnection.businessObject.id).to.equal('SequenceFlow_1');
+      expect(flowConnection.id).to.equal('SequenceFlow_1');
     }));
 
 
@@ -228,8 +255,8 @@ describe('features/modeling - update properties', function() {
       commandStack.undo();
 
       // then
-      expect(flowConnection.businessObject.get('xmlns:foo')).toBe(undefined);
-      expect(flowConnection.businessObject.get('foo:customAttr')).toBe(undefined);
+      expect(flowConnection.businessObject.get('xmlns:foo')).to.be.undefined;
+      expect(flowConnection.businessObject.get('foo:customAttr')).to.be.undefined;
     }));
 
   });
@@ -250,7 +277,7 @@ describe('features/modeling - update properties', function() {
       commandStack.redo();
 
       // then
-      expect(taskShape.businessObject.loopCharacteristics).toBe(loopCharacteristics);
+      expect(taskShape.businessObject.loopCharacteristics).to.eql(loopCharacteristics);
     }));
 
 
@@ -265,10 +292,10 @@ describe('features/modeling - update properties', function() {
       commandStack.redo();
 
       // then
-      expect(gatewayShape.businessObject['default']).not.toBeDefined();
+      expect(gatewayShape.businessObject['default']).not.to.be.defined;
 
       // flow got updated, too
-      expect(updatedElements).toContain(elementRegistry.get('SequenceFlow_1'));
+      expect(updatedElements).to.include(elementRegistry.get('SequenceFlow_1'));
     }));
 
 
@@ -283,10 +310,10 @@ describe('features/modeling - update properties', function() {
       commandStack.redo();
 
       // then
-      expect(flowConnection.businessObject.name).toBe('FOO BAR');
+      expect(flowConnection.businessObject.name).to.equal('FOO BAR');
 
       // flow got updated, too
-      expect(updatedElements).toContain(elementRegistry.get('SequenceFlow_1_label'));
+      expect(updatedElements).to.include(elementRegistry.get('SequenceFlow_1_label'));
     }));
 
 
@@ -302,7 +329,7 @@ describe('features/modeling - update properties', function() {
       commandStack.redo();
 
       // then
-      expect(flowConnection.businessObject.name).not.toBeDefined();
+      expect(flowConnection.businessObject.name).not.to.be.defined;
     }));
 
   });

@@ -1,16 +1,15 @@
 'use strict';
 
-var TestHelper = require('../TestHelper');
-
 var Modeler = require('../../lib/Modeler');
 
+var TestContainer = require('mocha-test-container-support');
 
 describe('Modeler', function() {
 
   var container;
 
   beforeEach(function() {
-    container = jasmine.getEnv().getTestContainer();
+    container = TestContainer.get(this);
   });
 
 
@@ -61,7 +60,7 @@ describe('Modeler', function() {
         }
 
         // then
-        expect(warnings.length).toBe(0);
+        expect(warnings.length).to.equal(0);
 
         done();
       });
@@ -80,7 +79,7 @@ describe('Modeler', function() {
 
       modeler.importXML(xml, function(err, warnings) {
 
-        expect(modeler.container.parentNode).toBe(document.body);
+        expect(modeler.container.parentNode).to.equal(document.body);
 
         done(err, warnings);
       });
@@ -102,8 +101,8 @@ describe('Modeler', function() {
             elementRegistry = viewer.get('elementRegistry');
 
         // assume
-        expect(overlays).toBeDefined();
-        expect(elementRegistry).toBeDefined();
+        expect(overlays).to.be.defined;
+        expect(elementRegistry).to.be.defined;
 
 
         // when
@@ -124,8 +123,8 @@ describe('Modeler', function() {
         });
 
         // then
-        expect(overlays.get({ element: 'SubProcess_1', type: 'badge' }).length).toBe(1);
-        expect(overlays.get({ element: 'StartEvent_1', type: 'badge' }).length).toBe(1);
+        expect(overlays.get({ element: 'SubProcess_1', type: 'badge' }).length).to.equal(1);
+        expect(overlays.get({ element: 'StartEvent_1', type: 'badge' }).length).to.equal(1);
 
         done(err);
       });
@@ -137,7 +136,8 @@ describe('Modeler', function() {
 
   describe('bendpoint editing support', function() {
 
-    var Events = require('diagram-js/test/util/Events');
+    var createEvent = require('../util/MockEvents').createEvent;
+
 
     it('should allow to edit bendpoints', function(done) {
 
@@ -149,14 +149,14 @@ describe('Modeler', function() {
         var bendpointMove = viewer.get('bendpointMove'),
             dragging = viewer.get('dragging'),
             elementRegistry = viewer.get('elementRegistry'),
-            createEvent = Events.scopedCreate(viewer.get('canvas'));
+            canvas = viewer.get('canvas');
 
         // assume
-        expect(bendpointMove).toBeDefined();
+        expect(bendpointMove).to.be.defined;
 
         // when
-        bendpointMove.start(createEvent({ x: 0, y: 0 }), elementRegistry.get('SequenceFlow_1'), 1);
-        dragging.move(createEvent({ x: 200, y: 200 }));
+        bendpointMove.start(createEvent(canvas, { x: 0, y: 0 }), elementRegistry.get('SequenceFlow_1'), 1);
+        dragging.move(createEvent(canvas, { x: 200, y: 200 }));
 
         done(err);
       });
@@ -174,7 +174,7 @@ describe('Modeler', function() {
 
     modeler.importXML(xml, function(err) {
 
-      expect(err).toBeDefined();
+      expect(err).to.be.defined;
 
       done();
     });
@@ -195,7 +195,7 @@ describe('Modeler', function() {
 
       createModeler(xml, function(err, warnings, modeler) {
 
-        expect(modeler.get('bpmnjs')).toBe(modeler);
+        expect(modeler.get('bpmnjs')).to.equal(modeler);
 
         done(err);
       });

@@ -1,7 +1,6 @@
 'use strict';
 
-var Matchers = require('../../../Matchers'),
-    TestHelper = require('../../../TestHelper');
+var TestHelper = require('../../../TestHelper');
 
 /* global bootstrapModeler, inject */
 
@@ -12,9 +11,6 @@ var modelingModule = require('../../../../lib/features/modeling'),
 
 describe('features/modeling - move shape', function() {
 
-  beforeEach(Matchers.addDeepEquals);
-
-
   var diagramXML = require('../../../fixtures/bpmn/simple.bpmn');
 
   var testModules = [ coreModule, modelingModule ];
@@ -24,7 +20,7 @@ describe('features/modeling - move shape', function() {
 
   describe('shape', function() {
 
-    it('should move', inject(function(elementRegistry, modeling) {
+    it('should move', inject(function(elementRegistry, modeling, bpmnFactory) {
 
       // given
       var startEventElement = elementRegistry.get('StartEvent_1'),
@@ -42,23 +38,21 @@ describe('features/modeling - move shape', function() {
       modeling.moveShape(startEventElement, { x: 0, y: 50 });
 
       // then
-      expect(startEvent.di.bounds.x).toBe(oldPosition.x);
-      expect(startEvent.di.bounds.y).toBe(oldPosition.y + 50);
+      expect(startEvent.di).to.have.position({
+        x: oldPosition.x,
+        y: oldPosition.y + 50
+      });
 
-      // expect flow layout
-      expect(sequenceFlowElement.waypoints).toDeepEqual([
-        { original: { x: 388, y: 310 }, x: 388, y: 310 },
-        { x: 404, y: 310 },
-        { x: 404, y: 260 },
-        { original: { x: 420, y: 260 }, x: 420, y: 260 }
-      ]);
+      var newWaypoints = sequenceFlowElement.waypoints;
 
-      expect(sequenceFlow.di.waypoint).toDeepEqual([
-        { $type: 'dc:Point', x: 388, y: 310 },
-        { $type: 'dc:Point', x: 404, y: 310 },
-        { $type: 'dc:Point', x: 404, y: 260 },
-        { $type: 'dc:Point', x: 420, y: 260 }
-      ]);
+      var expectedDiWaypoints = bpmnFactory.createDiWaypoints(newWaypoints.map(function(p) {
+        return { x: p.x, y: p.y };
+      }));
+
+      // see LayoutSpec for actual connection layouting tests
+
+      // expect di waypoints update
+      expect(sequenceFlow.di.waypoint).to.eql(expectedDiWaypoints);
     }));
 
 
@@ -77,8 +71,10 @@ describe('features/modeling - move shape', function() {
       modeling.moveShape(labelElement, { x: 0, y: 50 });
 
       // then
-      expect(startEvent.di.label.bounds.x).toBe(oldPosition.x);
-      expect(startEvent.di.label.bounds.y).toBe(oldPosition.y + 50);
+      expect(startEvent.di.label).to.have.position({
+        x: oldPosition.x,
+        y: oldPosition.y + 50
+      });
     }));
 
 
@@ -96,11 +92,11 @@ describe('features/modeling - move shape', function() {
       modeling.moveShape(labelElement, { x: 0, y: 50 }, processElement);
 
       // then
-      expect(labelElement.parent).toBe(processElement);
+      expect(labelElement.parent).to.eql(processElement);
 
       // expect actual element + businessObject to be unchanged
-      expect(startEventElement.parent).toBe(subProcessElement);
-      expect(startEvent.$parent).toBe(subProcess);
+      expect(startEventElement.parent).to.eql(subProcessElement);
+      expect(startEvent.$parent).to.eql(subProcess);
     }));
 
 
@@ -123,8 +119,7 @@ describe('features/modeling - move shape', function() {
         commandStack.undo();
 
         // then
-        expect(startEvent.di.bounds.x).toBe(oldPosition.x);
-        expect(startEvent.di.bounds.y).toBe(oldPosition.y);
+        expect(startEvent.di).to.have.position(oldPosition);
       }));
 
 
@@ -145,8 +140,7 @@ describe('features/modeling - move shape', function() {
         commandStack.undo();
 
         // then
-        expect(startEvent.di.label.bounds.x).toBe(oldPosition.x);
-        expect(startEvent.di.label.bounds.y).toBe(oldPosition.y);
+        expect(startEvent.di.label).to.have.position(oldPosition);
       }));
 
     });
@@ -173,8 +167,7 @@ describe('features/modeling - move shape', function() {
         commandStack.redo();
 
         // then
-        expect(startEvent.di.bounds.x).toBe(newPosition.x);
-        expect(startEvent.di.bounds.y).toBe(newPosition.y);
+        expect(startEvent.di).to.have.position(newPosition);
       }));
 
 
@@ -196,8 +189,7 @@ describe('features/modeling - move shape', function() {
         commandStack.redo();
 
         // then
-        expect(startEvent.di.label.bounds.x).toBe(newPosition.x);
-        expect(startEvent.di.label.bounds.y).toBe(newPosition.y);
+        expect(startEvent.di.label).to.have.position(newPosition);
       }));
 
     });
@@ -210,8 +202,7 @@ describe('features/modeling - move shape', function() {
     it('should move label with shape', inject(function(elementRegistry, modeling) {
 
       // given
-      var startEventElement = elementRegistry.get('StartEvent_1'),
-          startEvent = startEventElement.businessObject;
+      var startEventElement = elementRegistry.get('StartEvent_1');
 
       var label = startEventElement.label;
 
@@ -221,11 +212,13 @@ describe('features/modeling - move shape', function() {
       };
 
       // when
-      modeling.moveShapes([ startEventElement ], { x: 40, y: -80 });
+      modeling.moveElements([ startEventElement ], { x: 40, y: -80 });
 
       // then
-      expect(label.x).toBe(labelPosition.x + 40);
-      expect(label.y).toBe(labelPosition.y - 80);
+      expect(label).to.have.position({
+        x: labelPosition.x + 40,
+        y: labelPosition.y - 80
+      });
     }));
 
 
@@ -233,9 +226,7 @@ describe('features/modeling - move shape', function() {
 
       // given
       var startEventElement = elementRegistry.get('StartEvent_2'),
-          startEvent = startEventElement.businessObject,
           subProcessElement = elementRegistry.get('SubProcess_1'),
-          subProcess = startEventElement.businessObject,
           flowLabel = elementRegistry.get('SequenceFlow_3_label');
 
       var labelPosition = {
@@ -244,11 +235,13 @@ describe('features/modeling - move shape', function() {
       };
 
       // when
-      modeling.moveShapes([ startEventElement, subProcessElement ], { x: 40, y: -80 });
+      modeling.moveElements([ startEventElement, subProcessElement ], { x: 40, y: -80 });
 
       // then
-      expect(flowLabel.x).toBe(labelPosition.x + 40);
-      expect(flowLabel.y).toBe(labelPosition.y - 80);
+      expect(flowLabel).to.have.position({
+        x: labelPosition.x + 40,
+        y: labelPosition.y - 80
+      });
     }));
 
 
@@ -257,8 +250,7 @@ describe('features/modeling - move shape', function() {
       it('should undo label with shape', inject(function(elementRegistry, modeling, commandStack) {
 
         // given
-        var startEventElement = elementRegistry.get('StartEvent_1'),
-            startEvent = startEventElement.businessObject;
+        var startEventElement = elementRegistry.get('StartEvent_1');
 
         var label = startEventElement.label;
 
@@ -267,14 +259,13 @@ describe('features/modeling - move shape', function() {
           y: label.y
         };
 
-        modeling.moveShapes([ startEventElement ], { x: 40, y: -80 });
+        modeling.moveElements([ startEventElement ], { x: 40, y: -80 });
 
         // when
         commandStack.undo();
 
         // then
-        expect(label.x).toBe(labelPosition.x);
-        expect(label.y).toBe(labelPosition.y);
+        expect(label).to.have.position(labelPosition);
       }));
 
 
@@ -282,9 +273,7 @@ describe('features/modeling - move shape', function() {
 
         // given
         var startEventElement = elementRegistry.get('StartEvent_2'),
-            startEvent = startEventElement.businessObject,
             subProcessElement = elementRegistry.get('SubProcess_1'),
-            subProcess = startEventElement.businessObject,
             flowLabel = elementRegistry.get('SequenceFlow_3_label');
 
         var labelPosition = {
@@ -292,14 +281,13 @@ describe('features/modeling - move shape', function() {
           y: flowLabel.y
         };
 
-        modeling.moveShapes([ startEventElement, subProcessElement ], { x: 40, y: -80 });
+        modeling.moveElements([ startEventElement, subProcessElement ], { x: 40, y: -80 });
 
         // when
         commandStack.undo();
 
         // then
-        expect(flowLabel.x).toBe(labelPosition.x);
-        expect(flowLabel.y).toBe(labelPosition.y);
+        expect(flowLabel).to.have.position(labelPosition);
       }));
 
     });
@@ -310,8 +298,7 @@ describe('features/modeling - move shape', function() {
       it('should redo move label with shape', inject(function(elementRegistry, modeling, commandStack) {
 
         // given
-        var startEventElement = elementRegistry.get('StartEvent_1'),
-            startEvent = startEventElement.businessObject;
+        var startEventElement = elementRegistry.get('StartEvent_1');
 
         var label = startEventElement.label;
 
@@ -320,15 +307,17 @@ describe('features/modeling - move shape', function() {
           y: label.y
         };
 
-        modeling.moveShapes([ startEventElement ], { x: 40, y: -80 });
+        modeling.moveElements([ startEventElement ], { x: 40, y: -80 });
         commandStack.undo();
 
         // when
         commandStack.redo();
 
         // then
-        expect(label.x).toBe(labelPosition.x + 40);
-        expect(label.y).toBe(labelPosition.y - 80);
+        expect(label).to.have.position({
+          x: labelPosition.x + 40,
+          y: labelPosition.y - 80
+        });
       }));
 
 
@@ -336,9 +325,7 @@ describe('features/modeling - move shape', function() {
 
         // given
         var startEventElement = elementRegistry.get('StartEvent_2'),
-            startEvent = startEventElement.businessObject,
             subProcessElement = elementRegistry.get('SubProcess_1'),
-            subProcess = startEventElement.businessObject,
             flowLabel = elementRegistry.get('SequenceFlow_3_label');
 
         var labelPosition = {
@@ -346,15 +333,17 @@ describe('features/modeling - move shape', function() {
           y: flowLabel.y
         };
 
-        modeling.moveShapes([ startEventElement, subProcessElement ], { x: 40, y: -80 });
+        modeling.moveElements([ startEventElement, subProcessElement ], { x: 40, y: -80 });
         commandStack.undo();
 
         // when
         commandStack.redo();
 
         // then
-        expect(flowLabel.x).toBe(labelPosition.x + 40);
-        expect(flowLabel.y).toBe(labelPosition.y - 80);
+        expect(flowLabel).to.have.position({
+          x: labelPosition.x + 40,
+          y: labelPosition.y - 80
+        });
       }));
 
     });

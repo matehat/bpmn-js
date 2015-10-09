@@ -1,7 +1,6 @@
 'use strict';
 
-var Matchers = require('../../../Matchers'),
-    TestHelper = require('../../../TestHelper');
+var TestHelper = require('../../../TestHelper');
 
 /* global bootstrapModeler, inject */
 
@@ -11,9 +10,6 @@ var modelingModule = require('../../../../lib/features/modeling'),
 
 
 describe('features/modeling - create/remove space', function() {
-
-  beforeEach(Matchers.addDeepEquals);
-
 
   var diagramXML = require('../../../fixtures/bpmn/simple.bpmn');
 
@@ -25,7 +21,7 @@ describe('features/modeling - create/remove space', function() {
   describe('create space', function() {
 
 
-    it('should create space to the right', inject(function(elementRegistry, modeling) {
+    it('should create space to the right', inject(function(elementRegistry, modeling, bpmnFactory) {
 
       // given
       var sequenceFlowElement = elementRegistry.get('SequenceFlow_3'),
@@ -55,21 +51,27 @@ describe('features/modeling - create/remove space', function() {
       modeling.createSpace([subProcessElement, endEventElement], [], delta, direction);
 
       // then
-      expect(subProcess.di.bounds.x).toBe(subProcOldPos.x + 50);
-      expect(subProcess.di.bounds.y).toBe(subProcOldPos.y);
+      expect(subProcess.di).to.have.position({
+        x: subProcOldPos.x + 50,
+        y: subProcOldPos.y
+      });
 
-      expect(endEvent.di.bounds.x).toBe(endEventOldPos.x + 50);
-      expect(endEvent.di.bounds.y).toBe(endEventOldPos.y);
+      expect(endEvent.di).to.have.position({
+        x: endEventOldPos.x + 50,
+        y: endEventOldPos.y
+      });
 
-      expect(sequenceFlow.di.waypoint).toDeepEqual([
-        { $type: 'dc:Point', x: 144, y: 230 },
-        { $type: 'dc:Point', x: 350, y: 230 },
+      var diWaypoints = bpmnFactory.createDiWaypoints([
+        { x: 144, y: 230 },
+        { x: 350, y: 230 }
       ]);
+
+      expect(sequenceFlow.di.waypoint).eql(diWaypoints);
     }));
 
 
-    it('should create space downwards', inject(function(elementRegistry, modeling) {
-      
+    it('should create space downwards', inject(function(elementRegistry, modeling, bpmnFactory) {
+
       // given
       var startEventElement = elementRegistry.get('StartEvent_2'),
           startEvent = startEventElement.businessObject;
@@ -105,24 +107,32 @@ describe('features/modeling - create/remove space', function() {
       modeling.createSpace([startEventElement ,subProcessElement, endEventElement], [], delta, direction);
 
       // then
-      expect(startEvent.di.bounds.x).toBe(startEventOldPos.x);
-      expect(startEvent.di.bounds.y).toBe(startEventOldPos.y + 50);
+      expect(startEvent.di).to.have.position({
+        x: startEventOldPos.x,
+        y: startEventOldPos.y + 50
+      });
 
-      expect(subProcess.di.bounds.x).toBe(subProcOldPos.x);
-      expect(subProcess.di.bounds.y).toBe(subProcOldPos.y + 50);
+      expect(subProcess.di).to.have.position({
+        x: subProcOldPos.x,
+        y: subProcOldPos.y + 50
+      });
 
-      expect(endEvent.di.bounds.x).toBe(endEventOldPos.x);
-      expect(endEvent.di.bounds.y).toBe(endEventOldPos.y + 50);
+      expect(endEvent.di).to.have.position({
+        x: endEventOldPos.x,
+        y: endEventOldPos.y + 50
+      });
 
-      expect(sequenceFlow.di.waypoint).toDeepEqual([
-        { $type: 'dc:Point', x: 144, y: 280 },
-        { $type: 'dc:Point', x: 300, y: 280 },
+      var diWaypoints = bpmnFactory.createDiWaypoints([
+        { x: 144, y: 280 },
+        { x: 300, y: 280 }
       ]);
+
+      expect(sequenceFlow.di.waypoint).eql(diWaypoints);
     }));
 
 
-    it('should remove space to the left', inject(function(elementRegistry, modeling) {
-      
+    it('should remove space to the left', inject(function(elementRegistry, modeling, bpmnFactory) {
+
       // given
       var sequenceFlowElement = elementRegistry.get('SequenceFlow_3'),
           sequenceFlow = sequenceFlowElement.businessObject;
@@ -150,21 +160,27 @@ describe('features/modeling - create/remove space', function() {
       modeling.createSpace([subProcessElement, endEventElement], [], delta, direction);
 
       // then
-      expect(subProcess.di.bounds.x).toBe(subProcOldPos.x - 50);
-      expect(subProcess.di.bounds.y).toBe(subProcOldPos.y);
+      expect(subProcess.di).to.have.position({
+        x: subProcOldPos.x - 50,
+        y: subProcOldPos.y
+      });
 
-      expect(endEvent.di.bounds.x).toBe(endEventOldPos.x - 50);
-      expect(endEvent.di.bounds.y).toBe(endEventOldPos.y);
+      expect(endEvent.di).to.have.position({
+        x: endEventOldPos.x - 50,
+        y: endEventOldPos.y
+      });
 
-      expect(sequenceFlow.di.waypoint).toDeepEqual([
-        { $type: 'dc:Point', x: 144, y: 230 },
-        { $type: 'dc:Point', x: 250, y: 230 },
+      var diWaypoints = bpmnFactory.createDiWaypoints([
+        { x: 144, y: 230 },
+        { x: 250, y: 230 }
       ]);
+
+      expect(sequenceFlow.di.waypoint).eql(diWaypoints);
     }));
 
 
     it('should resize to the right', inject(function(elementRegistry, modeling) {
-      
+
       // given
       var taskElement = elementRegistry.get('Task_1'),
           task = taskElement.businessObject;
@@ -207,19 +223,27 @@ describe('features/modeling - create/remove space', function() {
       modeling.createSpace([startEventElement, startEventElement2, taskElement], [subProcessElement], delta, direction);
 
       // then
-      expect(subProcess.di.bounds.x).toBe(subProcOldPos.x + 50);
-      expect(subProcess.di.bounds.y).toBe(subProcOldPos.y);
-      expect(subProcess.di.bounds.width).toBe(subProcOldPos.width - 50);
-      expect(subProcess.di.bounds.height).toBe(subProcOldPos.height);
+      expect(subProcess.di).to.have.bounds({
+        x: subProcOldPos.x + 50,
+        y: subProcOldPos.y,
+        width: subProcOldPos.width - 50,
+        height: subProcOldPos.height
+      });
 
-      expect(startEvent.di.bounds.x).toBe(startEventOldPos.x + 50);
-      expect(startEvent.di.bounds.y).toBe(startEventOldPos.y);
+      expect(startEvent.di).to.have.position({
+        x: startEventOldPos.x + 50,
+        y: startEventOldPos.y
+      });
 
-      expect(startEvent2.di.bounds.x).toBe(startEventOldPos2.x + 50);
-      expect(startEvent2.di.bounds.y).toBe(startEventOldPos2.y);
+      expect(startEvent2.di).to.have.position({
+        x: startEventOldPos2.x + 50,
+        y: startEventOldPos2.y
+      });
 
-      expect(task.di.bounds.x).toBe(taskOldPos.x + 50);
-      expect(task.di.bounds.y).toBe(taskOldPos.y);
+      expect(task.di).to.have.position({
+        x: taskOldPos.x + 50,
+        y: taskOldPos.y
+      });
     }));
 
   });

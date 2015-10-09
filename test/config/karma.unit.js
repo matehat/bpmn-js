@@ -1,11 +1,21 @@
 'use strict';
 
+var path = require('path');
+
+var basePath = '../../';
+
+var absoluteBasePath = path.resolve(path.join(__dirname, basePath));
+
+
 module.exports = function(karma) {
   karma.set({
 
-    basePath: '../../',
+    basePath: basePath,
 
-    frameworks: [ 'browserify', 'jasmine' ],
+    frameworks: [ 'browserify',
+                  'mocha',
+                  'chai',
+                  'sinon-chai'],
 
     files: [
       'test/spec/**/*Spec.js',
@@ -29,6 +39,7 @@ module.exports = function(karma) {
     // browserify configuration
     browserify: {
       debug: true,
+      paths: [ absoluteBasePath ],
       transform: [ [ 'stringify', { global: true, extensions: [ '.bpmn', '.xml', '.css' ] } ] ]
     }
   });

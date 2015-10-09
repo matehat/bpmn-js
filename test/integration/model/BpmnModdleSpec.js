@@ -31,11 +31,11 @@ describe('bpmn-moddle', function() {
         }
 
         // then
-        expect(definitions.id).toBe('simple');
-        expect(definitions.targetNamespace).toBe('http://bpmn.io/schema/bpmn');
+        expect(definitions.id).to.equal('simple');
+        expect(definitions.targetNamespace).to.equal('http://bpmn.io/schema/bpmn');
 
-        expect(definitions.rootElements.length).toBe(1);
-        expect(definitions.rootElements[0].id).toBe('Process_1');
+        expect(definitions.rootElements.length).to.equal(1);
+        expect(definitions.rootElements[0].id).to.equal('Process_1');
 
         done();
       });
@@ -50,7 +50,10 @@ describe('bpmn-moddle', function() {
 
       // when
       parse(xml, function(err) {
-        console.log('parsed in ' + (new Date().getTime() - start) + ' ms');
+
+        // parsing a XML document should not take too long
+        expect((new Date().getTime() - start)).to.be.below(1000);
+
         done(err);
       });
 

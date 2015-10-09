@@ -1,10 +1,11 @@
 'use strict';
 
-var TestHelper = require('../../../TestHelper');
-
 /* global bootstrapModeler, inject */
 
 var find = require('lodash/collection/find');
+
+var assign = require('lodash/object/assign');
+
 
 var modelingModule = require('../../../../lib/features/modeling'),
     coreModule = require('../../../../lib/core');
@@ -18,14 +19,12 @@ describe('features/modeling - append shape', function() {
   var diagramXML = require('../../../fixtures/bpmn/simple.bpmn');
 
   var testModules = [ coreModule, modelingModule ];
-
   beforeEach(bootstrapModeler(diagramXML, { modules: testModules }));
 
 
   describe('shape handling', function() {
 
     it('should execute', inject(function(elementRegistry, modeling) {
-
       // given
       var startEventShape = elementRegistry.get('StartEvent_1');
 
@@ -34,8 +33,8 @@ describe('features/modeling - append shape', function() {
           target = targetShape.businessObject;
 
       // then
-      expect(targetShape).toBeDefined();
-      expect(target.$instanceOf('bpmn:Task')).toBe(true);
+      expect(targetShape).to.be.defined;
+      expect(target.$instanceOf('bpmn:Task')).to.be.true;
     }));
 
 
@@ -43,23 +42,18 @@ describe('features/modeling - append shape', function() {
 
       // given
       var startEventShape = elementRegistry.get('StartEvent_1');
-      var subProcessShape = elementRegistry.get('SubProcess_1');
 
-      var startEvent = startEventShape.businessObject,
-          subProcess = subProcessShape.businessObject;
+      var startEvent = startEventShape.businessObject;
 
       // when
       var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:Task' }),
           target = targetShape.businessObject;
 
       // then
-      expect(target.di).toBeDefined();
-      expect(target.di.$parent).toBe(startEvent.di.$parent);
+      expect(target.di).to.be.defined;
+      expect(target.di.$parent).to.eql(startEvent.di.$parent);
 
-      expect(target.di.bounds.x).toBe(targetShape.x);
-      expect(target.di.bounds.y).toBe(targetShape.y);
-      expect(target.di.bounds.width).toBe(targetShape.width);
-      expect(target.di.bounds.height).toBe(targetShape.height);
+      expect(target.di).to.have.bounds(targetShape);
     }));
 
 
@@ -69,15 +63,14 @@ describe('features/modeling - append shape', function() {
       var startEventShape = elementRegistry.get('StartEvent_1');
       var subProcessShape = elementRegistry.get('SubProcess_1');
 
-      var startEvent = startEventShape.businessObject,
-          subProcess = subProcessShape.businessObject;
+      var subProcess = subProcessShape.businessObject;
 
       // when
       var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:Task' }),
           target = targetShape.businessObject;
 
       // then
-      expect(subProcess.get('flowElements')).toContain(target);
+      expect(subProcess.get('flowElements')).to.include(target);
     }));
 
 
@@ -87,25 +80,17 @@ describe('features/modeling - append shape', function() {
 
         // given
         var startEventShape = elementRegistry.get('StartEvent_1');
-        var subProcessShape = elementRegistry.get('SubProcess_1');
-
-        var startEvent = startEventShape.businessObject,
-            subProcess = subProcessShape.businessObject;
 
         // when
-        var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:EndEvent' }),
-            target = targetShape.businessObject;
+        var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:EndEvent' });
 
         var label = targetShape.label;
 
         // then
-        expect(label).toBeDefined();
-        expect(elementRegistry.get(label.id)).toBeDefined();
+        expect(label).to.be.defined;
+        expect(elementRegistry.get(label.id)).to.be.defined;
 
-        expect(label.x).toBe(441);
-        expect(label.y).toBe(278);
-        expect(label.width).toBe(LabelUtil.DEFAULT_LABEL_SIZE.width);
-        expect(label.height).toBe(LabelUtil.DEFAULT_LABEL_SIZE.height);
+        expect(label).to.have.bounds(assign({ x: 441, y: 278 }, LabelUtil.DEFAULT_LABEL_SIZE));
       }));
 
 
@@ -113,22 +98,15 @@ describe('features/modeling - append shape', function() {
 
         // given
         var startEventShape = elementRegistry.get('StartEvent_1');
-        var subProcessShape = elementRegistry.get('SubProcess_1');
-
-        var startEvent = startEventShape.businessObject,
-            subProcess = subProcessShape.businessObject;
 
         // when
         var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:EndEvent' }),
             target = targetShape.businessObject;
 
         // then
-        expect(target.di.label).toBeDefined();
+        expect(target.di.label).to.be.defined;
 
-        expect(target.di.label.bounds.x).toBe(targetShape.label.x);
-        expect(target.di.label.bounds.y).toBe(targetShape.label.y);
-        expect(target.di.label.bounds.width).toBe(targetShape.label.width);
-        expect(target.di.label.bounds.height).toBe(targetShape.label.height);
+        expect(target.di.label).to.have.bounds(targetShape.label);
       }));
 
     });
@@ -152,8 +130,8 @@ describe('features/modeling - append shape', function() {
       });
 
       // then
-      expect(connection).toBeDefined();
-      expect(connection.$instanceOf('bpmn:SequenceFlow')).toBe(true);
+      expect(connection).to.be.defined;
+      expect(connection.$instanceOf('bpmn:SequenceFlow')).to.be.true;
     }));
 
   });
@@ -164,11 +142,10 @@ describe('features/modeling - append shape', function() {
     it('should undo add to parent', inject(function(elementRegistry, modeling, commandStack) {
 
       // given
-      var startEventShape = elementRegistry.get('StartEvent_1');
-      var subProcessShape = elementRegistry.get('SubProcess_1');
+      var startEventShape = elementRegistry.get('StartEvent_1'),
+          subProcessShape = elementRegistry.get('SubProcess_1');
 
-      var startEvent = startEventShape.businessObject,
-          subProcess = subProcessShape.businessObject;
+      var subProcess = subProcessShape.businessObject;
 
       var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:Task' }),
           target = targetShape.businessObject;
@@ -177,16 +154,16 @@ describe('features/modeling - append shape', function() {
       commandStack.undo();
 
       // then
-      expect(subProcess.get('flowElements')).not.toContain(target);
-      expect(subProcess.di.$parent.get('planeElement')).not.toContain(target.di);
+      expect(subProcess.get('flowElements')).not.to.include(target);
+      expect(subProcess.di.$parent.get('planeElement')).not.to.include(target.di);
     }));
 
 
     it('should undo add shape label', inject(function(elementRegistry, modeling, commandStack) {
 
       // given
-      var startEventShape = elementRegistry.get('StartEvent_1');
-      var subProcessShape = elementRegistry.get('SubProcess_1');
+      var startEventShape = elementRegistry.get('StartEvent_1'),
+          subProcessShape = elementRegistry.get('SubProcess_1');
 
       var startEvent = startEventShape.businessObject,
           subProcess = subProcessShape.businessObject;
@@ -202,13 +179,13 @@ describe('features/modeling - append shape', function() {
       commandStack.undo();
 
       // then
-      expect(connection.sourceRef).toBe(null);
-      expect(connection.targetRef).toBe(null);
-      expect(connection.$parent).toBe(null);
-      expect(subProcess.di.$parent.get('planeElement')).not.toContain(connection.di);
+      expect(connection.sourceRef).to.be.null;
+      expect(connection.targetRef).to.be.null;
+      expect(connection.$parent).to.be.null;
+      expect(subProcess.di.$parent.get('planeElement')).not.to.include(connection.di);
 
-      expect(targetShape.label).not.toBeDefined();
-      expect(elementRegistry.get(target.id + '_label')).not.toBeDefined();
+      expect(targetShape.label).not.to.be.defined;
+      expect(elementRegistry.get(target.id + '_label')).not.to.be.defined;
     }));
 
 
@@ -232,16 +209,16 @@ describe('features/modeling - append shape', function() {
       commandStack.undo();
 
       // then
-      expect(connection.sourceRef).toBe(null);
-      expect(connection.targetRef).toBe(null);
+      expect(connection.sourceRef).to.be.null;
+      expect(connection.targetRef).to.be.null;
 
-      expect(startEvent.get('outgoing')).not.toContain(connection);
-      expect(target.get('incoming')).not.toContain(connection);
+      expect(startEvent.get('outgoing')).not.to.include(connection);
+      expect(target.get('incoming')).not.to.include(connection);
 
-      expect(connection.$parent).toBe(null);
-      expect(subProcess.di.$parent.get('planeElement')).not.toContain(connection.di);
+      expect(connection.$parent).to.be.null;
+      expect(subProcess.di.$parent.get('planeElement')).not.to.include(connection.di);
 
-      expect(elementRegistry.get(targetShape.id)).not.toBeDefined();
+      expect(elementRegistry.get(targetShape.id)).not.to.be.defined;
     }));
 
 
@@ -265,12 +242,12 @@ describe('features/modeling - append shape', function() {
       commandStack.undo();
 
       // then
-      expect(connection.sourceRef).toBe(null);
-      expect(connection.targetRef).toBe(null);
-      expect(connection.$parent).toBe(null);
-      expect(subProcess.di.$parent.get('planeElement')).not.toContain(connection.di);
+      expect(connection.sourceRef).to.be.null;
+      expect(connection.targetRef).to.be.null;
+      expect(connection.$parent).to.be.null;
+      expect(subProcess.di.$parent.get('planeElement')).not.to.include(connection.di);
 
-      expect(elementRegistry.get(connection.id + '_label')).not.toBeDefined();
+      expect(elementRegistry.get(connection.id + '_label')).not.to.be.defined;
     }));
 
 
@@ -280,11 +257,7 @@ describe('features/modeling - append shape', function() {
       var startEventShape = elementRegistry.get('StartEvent_1');
       var subProcessShape = elementRegistry.get('SubProcess_1');
 
-      var startEvent = startEventShape.businessObject,
-          subProcess = subProcessShape.businessObject;
-
-      var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:Task' }),
-          target = targetShape.businessObject;
+      var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:Task' });
 
       var targetShape2 = modeling.appendShape(targetShape, { type: 'bpmn:UserTask' });
 
@@ -296,15 +269,15 @@ describe('features/modeling - append shape', function() {
 
       // then
       // expect redo to work on original target object
-      expect(targetShape.parent).toBe(subProcessShape);
+      expect(targetShape.parent).to.eql(subProcessShape);
 
       // when
       commandStack.undo();
       commandStack.undo();
 
       // then
-      expect(targetShape2.parent).toBe(null);
-      expect(elementRegistry.get(targetShape2.id)).not.toBeDefined();
+      expect(targetShape2.parent).to.be.null;
+      expect(elementRegistry.get(targetShape2.id)).not.to.be.defined;
     }));
 
 
@@ -330,11 +303,11 @@ describe('features/modeling - append shape', function() {
       commandStack.undo();
 
       // then
-      expect(connection.sourceRef).toBe(null);
-      expect(connection.targetRef).toBe(null);
-      expect(connection.$parent).toBe(null);
+      expect(connection.sourceRef).to.be.null;
+      expect(connection.targetRef).to.be.null;
+      expect(connection.$parent).to.be.null;
 
-      expect(subProcess.di.$parent.get('planeElement')).not.toContain(connection.di);
+      expect(subProcess.di.$parent.get('planeElement')).not.to.include(connection.di);
     }));
 
   });
@@ -354,8 +327,8 @@ describe('features/modeling - append shape', function() {
           target = targetShape.businessObject;
 
         // then
-        expect(targetShape).toBeDefined();
-        expect(target.$instanceOf('bpmn:ExclusiveGateway')).toBe(true);
+        expect(targetShape).to.be.defined;
+        expect(target.$instanceOf('bpmn:ExclusiveGateway')).to.be.true;
       }));
 
 
@@ -365,15 +338,14 @@ describe('features/modeling - append shape', function() {
         var startEventShape = elementRegistry.get('StartEvent_1');
         var subProcessShape = elementRegistry.get('SubProcess_1');
 
-        var startEvent = startEventShape.businessObject,
-          subProcess = subProcessShape.businessObject;
+        var subProcess = subProcessShape.businessObject;
 
         // when
         var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:ExclusiveGateway' }),
-          target = targetShape.businessObject;
+            target = targetShape.businessObject;
 
         // then
-        expect(subProcess.get('flowElements')).toContain(target);
+        expect(subProcess.get('flowElements')).to.include(target);
       }));
 
 
@@ -383,8 +355,7 @@ describe('features/modeling - append shape', function() {
         var startEventShape = elementRegistry.get('StartEvent_1');
         var subProcessShape = elementRegistry.get('SubProcess_1');
 
-        var startEvent = startEventShape.businessObject,
-          subProcess = subProcessShape.businessObject;
+        var subProcess = subProcessShape.businessObject;
 
         var targetShape = modeling.appendShape(startEventShape, { type: 'bpmn:ExclusiveGateway' }),
           target = targetShape.businessObject;
@@ -393,8 +364,8 @@ describe('features/modeling - append shape', function() {
         commandStack.undo();
 
         // then
-        expect(subProcess.get('flowElements')).not.toContain(target);
-        expect(subProcess.di.$parent.get('planeElement')).not.toContain(target.di);
+        expect(subProcess.get('flowElements')).not.to.include(target);
+        expect(subProcess.di.$parent.get('planeElement')).not.to.include(target.di);
       }));
 
     });

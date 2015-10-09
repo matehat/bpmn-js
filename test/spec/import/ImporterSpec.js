@@ -2,6 +2,10 @@
 
 var TestHelper = require('../../TestHelper');
 
+/* global bootstrapViewer, inject */
+
+
+var TestContainer = require('mocha-test-container-support');
 
 var Diagram = require('diagram-js/lib/Diagram'),
     BpmnModdle = require('bpmn-moddle'),
@@ -11,30 +15,24 @@ var Diagram = require('diagram-js/lib/Diagram'),
 
 describe('import - Importer', function() {
 
-  var moddle = new BpmnModdle();
-
-  var container;
-
-  beforeEach(function() {
-    container = jasmine.getEnv().getTestContainer();
-  });
-
-
-  function createDiagram() {
+  function createDiagram(container, modules) {
     return new Diagram({
       canvas: { container: container },
-      modules: Viewer.prototype._modules
+      modules: modules
     });
   }
 
   var diagram;
 
   beforeEach(function() {
-    diagram = createDiagram();
+    diagram = createDiagram(TestContainer.get(this), Viewer.prototype._modules);
   });
 
 
   function runImport(diagram, xml, done) {
+
+    var moddle = new BpmnModdle();
+
     moddle.fromXML(xml, function(err, definitions) {
       if (err) {
         return done(err);
@@ -47,10 +45,10 @@ describe('import - Importer', function() {
 
   describe('event emitter', function() {
 
-    it('should fire <shape.added> during import', function(done) {
+    it('should fire <bpmnElement.added> during import', function(done) {
 
       // given
-      var xml = require('../../fixtures/bpmn/simple.bpmn');
+      var xml = require('../../fixtures/bpmn/import/process.bpmn');
 
       var eventCount = 0;
 
@@ -63,7 +61,7 @@ describe('import - Importer', function() {
       runImport(diagram, xml, function(err, warnings) {
 
         // then
-        expect(eventCount).toEqual(9);
+        expect(eventCount).to.equal(9);
 
         done(err);
       });
@@ -74,10 +72,10 @@ describe('import - Importer', function() {
 
   describe('basics', function() {
 
-    it('should import simple process', function(done) {
+    it('should import process', function(done) {
 
       // given
-      var xml = require('../../fixtures/bpmn/simple.bpmn');
+      var xml = require('../../fixtures/bpmn/import/process.bpmn');
 
       var events = [];
 
@@ -95,7 +93,7 @@ describe('import - Importer', function() {
       runImport(diagram, xml, function(err, warnings) {
 
         // then
-        expect(events).toEqual([
+        expect(events).to.eql([
            { type: 'add', semantic: 'Process_1', di: 'BPMNPlane_1', diagramElement: 'Process_1' },
            { type: 'add', semantic: 'SubProcess_1', di: '_BPMNShape_SubProcess_2', diagramElement: 'SubProcess_1' },
            { type: 'add', semantic: 'StartEvent_1', di: '_BPMNShape_StartEvent_2', diagramElement: 'StartEvent_1' },
@@ -115,7 +113,7 @@ describe('import - Importer', function() {
     it('should import collaboration', function(done) {
 
       // given
-      var xml = require('../../fixtures/bpmn/collaboration.bpmn');
+      var xml = require('../../fixtures/bpmn/import/collaboration.bpmn');
 
       var events = [];
 
@@ -133,7 +131,7 @@ describe('import - Importer', function() {
       runImport(diagram, xml, function(err, warnings) {
 
         // then
-        expect(events).toEqual([
+        expect(events).to.eql([
           { type: 'add', semantic: '_Collaboration_2', di: 'BPMNPlane_1', diagramElement: '_Collaboration_2' },
           { type: 'add', semantic: 'Participant_2', di: '_BPMNShape_Participant_2', diagramElement: 'Participant_2' },
           { type: 'add', semantic: 'Lane_1', di: '_BPMNShape_Lane_2', diagramElement: 'Lane_1' },
@@ -146,110 +144,99 @@ describe('import - Importer', function() {
 
         done(err);
       });
+
     });
+
   });
 
 
-  describe('model wiring', function() {
+  describe('position', function() {
 
-    var xml = require('../../fixtures/bpmn/simple.bpmn');
+    var xml = require('../../fixtures/bpmn/import/position/position-testcase.bpmn');
 
-    var elements;
+    it('should round shape\'s x and y coordinates', function(done) {
 
-    beforeEach(function(done) {
-      elements = [];
+      // given
+      var events = {};
 
       // log events
       diagram.get('eventBus').on('bpmnElement.added', function(e) {
-        elements.push(e.element);
+
+        events[e.element.id] = e.element;
       });
 
-      runImport(diagram, xml, done);
+      runImport(diagram, xml, function(err, warnings) {
+
+        //round up
+        expect(events.ID_End.x).to.equal(Math.round(340.6));
+        expect(events.ID_End.y).to.equal(Math.round(136.6));
+
+        //round down
+        expect(events.ID_Start.x).to.equal(Math.round(120.4));
+        expect(events.ID_Start.y).to.equal(Math.round(135.4));
+
+        done(err);
+      });
     });
 
 
-    it('should wire root element', function() {
+    it('should round shape\'s height and width', function(done) {
 
       // given
-      var canvas = diagram.get('canvas');
+      var events = {};
 
-      // when
-      var root = elements[0];
-      var anyChild = elements[1];
+      // log events
+      diagram.get('eventBus').on('bpmnElement.added', function(e) {
 
-      // assume
-      expect(root.businessObject.$instanceOf('bpmn:Process')).toBe(true);
-      expect(anyChild.parent).toBe(root);
+        events[e.element.id] = e.element;
+      });
 
-      // then
-      expect(canvas.getRootElement()).toBe(root);
+      runImport(diagram, xml, function(err, warnings) {
+
+        //round down
+        expect(events.ID_Start.height).to.equal(Math.round(30.4));
+        expect(events.ID_Start.width).to.equal(Math.round(30.4));
+
+        done(err);
+      });
     });
 
-
-    it('should wire parent child relationship', function() {
-
-      // when
-      var subProcessShape = elements[1];
-      var startEventShape = elements[2];
-
-      // then
-      expect(startEventShape.type).toBe('bpmn:StartEvent');
-      expect(startEventShape.parent).toBe(subProcessShape);
-
-      expect(subProcessShape.children.length).toBe(5);
-    });
+  });
 
 
-    it('should wire label relationship', function() {
+  describe('elements', function() {
 
-      // when
-      var startEventShape = elements[2];
-      var label = startEventShape.label;
+    it('should import boundary events', function(done) {
 
-      // then
-      expect(label).toBeDefined();
-      expect(label.id).toBe(startEventShape.id + '_label');
+      // given
+      var xml = require('../../fixtures/bpmn/import/boundaryEvent.bpmn');
 
-      expect(label.labelTarget).toBe(startEventShape);
-    });
+      var events = [];
 
-
-    it('should wire businessObject', function() {
+      // log events
+      diagram.get('eventBus').on('bpmnElement.added', function(e) {
+        events.push({
+          type: 'add',
+          semantic: e.element.businessObject.id,
+          di: e.element.businessObject.di.id,
+          diagramElement: e.element && e.element.id
+        });
+      });
 
       // when
-      var subProcessShape = elements[1];
-      var startEventShape = elements[2];
+      runImport(diagram, xml, function(err, warnings) {
 
-      var subProcess = subProcessShape.businessObject,
-          startEvent = startEventShape.businessObject;
+        // then
+        expect(events).to.eql([
+          { type: 'add', semantic: 'Process_1', di: 'BPMNPlane_1', diagramElement: 'Process_1'},
+          { type: 'add', semantic: 'Task_1', di: '_BPMNShape_Task_2', diagramElement: 'Task_1'},
+          { type: 'add', semantic: 'Task_2', di: '_BPMNShape_Task_3', diagramElement: 'Task_2'},
+          { type: 'add', semantic: 'BoundaryEvent_1', di: '_BPMNShape_BoundaryEvent_2', diagramElement: 'BoundaryEvent_1'},
+          { type: 'add', semantic: 'SequenceFlow_1', di: 'BPMNEdge_SequenceFlow_1', diagramElement: 'SequenceFlow_1'}
+        ]);
 
-      // then
-      expect(subProcess).toBeDefined();
-      expect(subProcess.$instanceOf('bpmn:SubProcess')).toBe(true);
-
-      expect(startEvent).toBeDefined();
-      expect(startEvent.$instanceOf('bpmn:StartEvent')).toBe(true);
-    });
-
-
-    it('should wire di', function() {
-
-      // when
-      var subProcessShape = elements[1];
-      var startEventShape = elements[2];
-
-      var subProcess = subProcessShape.businessObject,
-          startEvent = startEventShape.businessObject;
-
-      var subProcessDi = subProcess.di,
-          startEventDi = startEvent.di;
-
-      // then
-      expect(subProcessDi).toBeDefined();
-      expect(subProcessDi.bpmnElement).toBe(subProcess);
-
-      expect(startEventDi).toBeDefined();
-      expect(startEventDi.bpmnElement).toBe(startEvent);
+        done(err);
+      });
     });
 
   });
@@ -260,12 +247,12 @@ describe('import - Importer', function() {
     it('should import invalid flowElement', function(done) {
 
       // given
-      var xml = require('../../fixtures/bpmn/error/invalid-flow-element.bpmn');
+      var xml = require('../../fixtures/bpmn/import/error/invalid-flow-element.bpmn');
 
       // when
       runImport(diagram, xml, function(err, warnings) {
 
-        expect(warnings.length).toBe(1);
+        expect(warnings.length).to.equal(1);
 
         done(err);
       });
@@ -275,7 +262,7 @@ describe('import - Importer', function() {
     it('should import multiple DIs', function(done) {
 
       // given
-      var xml = require('../../fixtures/bpmn/error/multiple-dis.bpmn');
+      var xml = require('../../fixtures/bpmn/import/error/multiple-dis.bpmn');
 
       // when
       runImport(diagram, xml, function(err, warnings) {
@@ -283,8 +270,8 @@ describe('import - Importer', function() {
         var expectedMessage =
           'multiple DI elements defined for <bpmn:InclusiveGateway id="InclusiveGateway_1" />';
 
-        expect(warnings.length).toBe(1);
-        expect(warnings[0].message).toBe(expectedMessage);
+        expect(warnings.length).to.equal(1);
+        expect(warnings[0].message).to.equal(expectedMessage);
 
         done(err);
       });
@@ -303,10 +290,52 @@ describe('import - Importer', function() {
 
         var element = elementRegistry.get('GATEWAY_1');
 
-        expect(element.businessObject.eventGatewayType).toEqual('Exclusive');
+        expect(element.businessObject.eventGatewayType).to.equal('Exclusive');
 
         done();
       });
+    });
+
+
+    describe('boundary events', function() {
+
+      it('should handle missing attachToRef', function(done) {
+
+        // given
+        var xml = require('../../fixtures/bpmn/import/error/boundaryEvent-missingAttachToRef.bpmn');
+
+        // when
+        runImport(diagram, xml, function(err, warnings) {
+
+          // then
+          expect(warnings.length).to.eql(2);
+
+          expect(warnings[0].message).to.eql('missing <bpmn:BoundaryEvent id="BoundaryEvent_1" />#attachedToRef');
+          expect(warnings[1].message).to.eql('element <bpmn:BoundaryEvent id="BoundaryEvent_1" /> referenced by <bpmn:SequenceFlow id="SequenceFlow_1" />#sourceRef not yet drawn');
+
+          done(err);
+        });
+      });
+
+
+      it('should handle invalid attachToRef', function(done) {
+
+        // given
+        var xml = require('../../fixtures/bpmn/import/error/boundaryEvent-invalidAttachToRef.bpmn');
+
+        // when
+        runImport(diagram, xml, function(err, warnings) {
+
+          // then
+          expect(warnings.length).to.eql(2);
+
+          expect(warnings[0].message).to.eql('missing <bpmn:BoundaryEvent id="BoundaryEvent_1" />#attachedToRef');
+          expect(warnings[1].message).to.eql('element <bpmn:BoundaryEvent id="BoundaryEvent_1" /> referenced by <bpmn:SequenceFlow id="SequenceFlow_1" />#sourceRef not yet drawn');
+
+          done(err);
+        });
+      });
+
     });
 
   });
@@ -314,88 +343,19 @@ describe('import - Importer', function() {
 
   describe('integration', function() {
 
-    it('should import complex', function(done) {
-
-      // given
-      var xml = require('../../fixtures/bpmn/complex.bpmn');
-
-      // when
-      runImport(diagram, xml, function(err, warnings) {
-
-        // then
-        expect(warnings.length).toBe(0);
-
-        done(err);
-      });
-    });
-
-
     it('should import dangling process message flows', function(done) {
 
       // given
-      var xml = require('../../fixtures/bpmn/import/dangling-process-message-flow.bpmn');
+      var xml = require('../../fixtures/bpmn/import/error/dangling-process-message-flow.bpmn');
 
       // when
       runImport(diagram, xml, function(err, warnings) {
 
         // then
-        expect(warnings.length).toBe(0);
+        expect(warnings.length).to.equal(0);
 
-        expect(diagram.get('elementRegistry').get('_b467921a-ef7b-44c5-bf78-fd624c400d17')).toBeDefined();
-        expect(diagram.get('elementRegistry').get('_c311cc87-677e-47a4-bdb1-8744c4ec3147')).toBeDefined();
-
-        done(err);
-      });
-    });
-  });
-
-
-  describe('position', function() {
-
-    var xml1 = require('../../fixtures/bpmn/import/position/position-testcase.bpmn');
-
-    it('should round shape\'s x and y coordinates', function(done) {
-
-      // given
-      var events = {};
-
-      // log events
-      diagram.get('eventBus').on('bpmnElement.added', function(e) {
-
-        events[e.element.id] = e.element;
-      });
-
-      runImport(diagram, xml1, function(err, warnings) {
-
-        //round up
-        expect(events.ID_End.x).toBe(Math.round(340.6));
-        expect(events.ID_End.y).toBe(Math.round(136.6));
-
-        //round down
-        expect(events.ID_Start.x).toBe(Math.round(120.4));
-        expect(events.ID_Start.y).toBe(Math.round(135.4));
-
-        done(err);
-      });
-    });
-
-
-    it('should round shape\'s height and width', function(done) {
-
-      // given
-      var events = {};
-
-      // log events
-      diagram.get('eventBus').on('bpmnElement.added', function(e) {
-
-        events[e.element.id] = e.element;
-      });
-
-      runImport(diagram, xml1, function(err, warnings) {
-
-        //round down
-        expect(events.ID_Start.height).toBe(Math.round(30.4));
-        expect(events.ID_Start.width).toBe(Math.round(30.4));
+        expect(diagram.get('elementRegistry').get('_b467921a-ef7b-44c5-bf78-fd624c400d17')).to.be.defined;
+        expect(diagram.get('elementRegistry').get('_c311cc87-677e-47a4-bdb1-8744c4ec3147')).to.be.defined;
 
         done(err);
       });
